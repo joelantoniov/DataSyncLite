@@ -1,0 +1,12 @@
+__pycache__/
+venv-datasync-lite/
+*.pyc
+dist/
+build/
+*.egg-info/
+.env
+terraform/.terraform/
+terraform/terraform.tfstate*
+*.log
+coverage.xml
+test-results.xml
