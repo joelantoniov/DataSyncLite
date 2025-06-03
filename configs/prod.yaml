@@ -1,0 +1,24 @@
+environment: "prod"
+pipeline_id: "datasynclite-prod-001"
+databricks:
+  workspace_url: "https://prod-databricks-instance.azuredatabricks.net"
+  cluster_id: "lite-cluster-001"
+sqlserver:
+  host: "prod-sqlserver.database.windows.net"
+  database: "sales_db"
+  username: "prod_user"
+  keyvault_secret_name: "sqlserver-password-prod"
+azure:
+  keyvault_url: "https://prod-keyvault.vault.azure.net"
+  storage_account: "abfss://sales@proddatalake.dfs.core.windows.net"
+logging:
+  log_level: "INFO"
+  azure_monitor_enabled: true
+spark:
+  executor_memory: "4g"
+  executor_cores: 4
+  shuffle_partitions: 50
+data_quality:
+  rules_file: "data_quality_rules.yaml"
+alerting:
+  email: "ops@company.com"

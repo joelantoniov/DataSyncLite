@@ -1,0 +1,86 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/*
+      - tests/*
+      - configs/*
+      - setup.py
+      - requirements.txt
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  pythonVersion: '3.9'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndTest
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Set Python version'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 bandit
+      displayName: 'Install dependencies'
+
+    - script: |
+        flake8 src/ --max-line-length=120
+      displayName: 'Run linting'
+
+    - script: |
+        bandit -r src/
+      displayName: 'Run security scan'
+
+    - script: |
+        pytest tests/ --cov=src/datasync_lite --cov-report=xml --junitxml=test-results.xml
+      displayName: 'Run tests'
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-results.xml'
+        testRunTitle: 'Unit Tests'
+      condition: succeededOrFailed()
+
+    - script: |
+        python setup.py bdist_wheel
+      displayName: 'Build wheel'
+
+    - task: CopyFiles@2
+      inputs:
+        contents: 'dist/*.whl'
+        targetFolder: '$(Build.ArtifactStagingDirectory)'
+      displayName: 'Copy wheel to artifacts'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'datasync_lite'
+        publishLocation: 'Container'
+      displayName: 'Publish artifacts'
+
+- stage: Deploy
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: DeployToDatabricks
+    steps:
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'AzureServiceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az databricks workspace import \
+            --workspace-url $(DATABRICKS_WORKSPACE_URL) \
+            --resource-path /Shared/datasync_lite \
+            --source-path dist/datasync_lite-0.1-py3-none-any.whl \
+            --format BINARY
+      displayName: 'Deploy wheel to Databricks'

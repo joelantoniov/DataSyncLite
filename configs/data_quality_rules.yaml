@@ -1,0 +1,14 @@
+rules:
+  - name: "no_nulls_in_sales_id"
+    column: "sales_id"
+    expectation: "expect_column_values_to_not_be_null"
+  - name: "positive_sales_amount"
+    column: "sales_amount"
+    expectation: "expect_column_values_to_be_greater_than"
+    params:
+      min_value: 0
+  - name: "valid_date_format"
+    column: "date"
+    expectation: "expect_column_values_to_match_strftime_format"
+    params:
+      strftime_format: "%Y-%m-%d"
